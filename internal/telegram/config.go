@@ -3,8 +3,7 @@ package telegram
 import tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 type Config struct {
-	ApiToken string   `yaml:"api-token"`
-	Channels []string `yaml:"channels"`
+	ApiToken string `yaml:"api-token"`
 }
 
 func (t *Config) CheckAuth() (*tgbotapi.User, error) {

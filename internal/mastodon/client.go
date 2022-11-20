@@ -43,7 +43,8 @@ func (m *Mastodon) StartPoster(ctx context.Context) (chan<- Toot, error) {
 			// TODO: upload media
 			// TODO: set toot language
 			toot := mastodon.Toot{
-				Status: msg.Status,
+				Status:     msg.Status,
+				Visibility: mastodon.VisibilityUnlisted, // TODO: remove when not debugging anymore
 			}
 			status, err := client.PostStatus(ctx, &toot)
 			if err != nil {

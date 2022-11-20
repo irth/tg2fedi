@@ -6,6 +6,11 @@ import (
 )
 
 type Config struct {
-	Mastodon mastodon.Config `yaml:"mastodon"`
-	Telegram telegram.Config `yaml:"telegram"`
+	Mastodon  mastodon.Config `yaml:"mastodon"`
+	Telegram  telegram.Config `yaml:"telegram"`
+	BotConfig BotConfig       `yaml:"tg2fedi"`
+}
+
+type BotConfig struct {
+	Channels []string `yaml:"channels"`
 }

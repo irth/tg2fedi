@@ -6,6 +6,7 @@ import (
 
 	"github.com/irth/tg2fedi/internal/config"
 	"github.com/irth/tg2fedi/internal/mastodon"
+	"github.com/irth/tg2fedi/internal/telegram"
 	"github.com/urfave/cli/v2"
 )
 
@@ -26,10 +27,19 @@ func main() {
 				return err
 			}
 			defer close(toots)
-			toots <- mastodon.Toot{Status: "henlo"}
-			for {
+
+			t := telegram.Telegram{Config: cfg.Telegram}
+			posts, err := t.StartReader()
+			if err != nil {
+				return err
 			}
 
+			for post := range posts {
+				toots <- mastodon.Toot{
+					Status: post.Text,
+				}
+			}
+			return nil
 		},
 		Commands: []*cli.Command{
 			config.SetupCommand(),
