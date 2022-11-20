@@ -36,7 +36,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: tg2fedi.${{matrix.GOOS}}.${{matrix.GOARCH}}
-          path: bin/tg2fedi.${{matrix.GOOS}}.${{matrix.GOARCH}}
+          path: bin/tg2fedi.${{matrix.GOOS}}.${{matrix.GOARCH}}*
   release:
     needs: build
     runs-on: ubuntu-latest
