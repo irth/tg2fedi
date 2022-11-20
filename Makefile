@@ -8,7 +8,7 @@ lint:
 
 .PHONY: build-linux
 build-linux:
-	GOOS=linux go build -o bin/tg2fedi ./cmd/tg2fedi
+	GOOS=linux GOARCH=amd64 go build -o bin/tg2fedi.linux.amd64 ./cmd/tg2fedi
 
 .PHONY: build-docker
 build-docker:
