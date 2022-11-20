@@ -1,0 +1,40 @@
+name: Release on tags
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        GOOS:
+          - linux
+          - darwin
+          - windows
+          - plan9
+          - openbsd
+          - freebsd
+        GOARCH:
+          - '386'
+          - amd64
+          - arm
+          - arm64
+        exclude:
+          - GOOS: darwin
+            GOARCH: '386'
+          - GOOS: darwin
+            GOARCH: arm
+          - GOOS: plan9
+            GOARCH: arm64
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '>=1.19.0'
+      - run: make build GOOS=${{matrix.GOOS}} GOARCH=${{matrix.GOARCH}}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: bin/*
+

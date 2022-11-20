@@ -1,14 +1,26 @@
+DEFAULT_OUT=bin/tg2fedi
+ifdef GOOS
+DEFAULT_OUT:=$(DEFAULT_OUT).$(GOOS)
+endif
+ifdef GOARCH
+DEFAULT_OUT:=$(DEFAULT_OUT).$(GOARCH)
+endif
+OUT?=$(DEFAULT_OUT)
+
 .PHONY: build
 build:
-	go build -o bin/tg2fedi ./cmd/tg2fedi
+	$(info $(OUTT))
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(OUT) ./cmd/tg2fedi
+
+.PHONY: build-linux
+build-linux:
+	$(MAKE) build GOOS=linux GOARCH=amd64 OUT=bin/cmd
 
 .PHONY: lint
 lint:
 	golangci-lint run
 
-.PHONY: build-linux
-build-linux:
-	GOOS=linux go build -o bin/tg2fedi ./cmd/tg2fedi
+
 
 .PHONY: build-docker
 build-docker:
