@@ -95,7 +95,9 @@ func (t *Telegram) handleMediaGroup(ch chan Message, groupId string) chan *tgbot
 					defer t.Unlock()
 					delete(t.mediaGroupChannels, groupId)
 				}()
-				t.submitMessages(ch, messages)
+				if err := t.submitMessages(ch, messages); err != nil {
+					log.Printf("telegram: submitMessages: %s", err)
+				}
 				return
 			}
 		}
