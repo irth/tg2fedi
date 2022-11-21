@@ -121,11 +121,10 @@ func (t *Telegram) handleMediaGroup(ch chan Message, groupId string) chan ordere
 				}
 				timer.Reset(timerDuration)
 			case <-timer.C:
-				func() {
-					t.Lock()
-					defer t.Unlock()
-					delete(t.mediaGroupChannels, groupId)
-				}()
+				t.Lock()
+				delete(t.mediaGroupChannels, groupId)
+				t.Unlock()
+
 				if err := t.submitMessages(ch, messages); err != nil {
 					log.Printf("telegram: submitMessages: %s", err)
 				}
@@ -180,34 +179,36 @@ func (t *Telegram) submitMessages(ch chan Message, msgs messageGroup) error {
 			mediaType = MediaTypePhoto
 		}
 
-		url, err := t.api.GetFileDirectURL(fileID)
-		if err != nil {
-			return fmt.Errorf("telegram: getting direct url to file %s (%s): %w", uniqueID, mediaType, err)
-		}
-
-		err = func() error {
-			r, err := http.Get(url)
-			if err != nil {
-				return err
-			}
-			if r.StatusCode != http.StatusOK {
-				return fmt.Errorf("http error %d", r.StatusCode)
-			}
-			defer r.Body.Close()
-
-			f, err := os.Create(filepath.Join(t.Config.MediaDir, uniqueID))
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-
-			_, err = io.Copy(f, r.Body)
-			return err
-		}()
+		path, err := t.saveAttachment(fileID, uniqueID)
 		if err != nil {
 			return fmt.Errorf("telegram: downloading file %s (%s): %w", uniqueID, mediaType, err)
 		}
-
+		_ = path
 	}
 	return nil
+}
+
+func (t *Telegram) saveAttachment(fileID string, uniqueID string) (string, error) {
+	url, err := t.api.GetFileDirectURL(fileID)
+	if err != nil {
+		return "", err
+	}
+	r, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	if r.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("http error %d", r.StatusCode)
+	}
+	defer r.Body.Close()
+
+	path := filepath.Join(t.Config.MediaDir, uniqueID)
+	f, err := os.Create(path)
+	if err != nil {
+		return path, err
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, r.Body)
+	return path, err
 }
