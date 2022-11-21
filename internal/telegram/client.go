@@ -2,7 +2,11 @@ package telegram
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -37,6 +41,10 @@ func (m messageGroup) Sort() {
 }
 
 func (t *Telegram) StartReader() (<-chan Message, error) {
+	if err := os.MkdirAll(t.Config.MediaDir, 0750); err != nil {
+		return nil, fmt.Errorf("telegram: couldn't create media dir: %s: %w", t.Config.MediaDir, err)
+	}
+
 	t.mediaGroupChannels = make(map[string]chan orderedMessage)
 
 	var err error
@@ -171,7 +179,35 @@ func (t *Telegram) submitMessages(ch chan Message, msgs messageGroup) error {
 			uniqueID = msg.Sticker.FileUniqueID
 			mediaType = MediaTypePhoto
 		}
-		log.Printf("found media %s, id: %s, uid: %s", mediaType, fileID, uniqueID)
+
+		url, err := t.api.GetFileDirectURL(fileID)
+		if err != nil {
+			return fmt.Errorf("telegram: getting direct url to file %s (%s): %w", uniqueID, mediaType, err)
+		}
+
+		err = func() error {
+			r, err := http.Get(url)
+			if err != nil {
+				return err
+			}
+			if r.StatusCode != http.StatusOK {
+				return fmt.Errorf("http error %d", r.StatusCode)
+			}
+			defer r.Body.Close()
+
+			f, err := os.Create(filepath.Join(t.Config.MediaDir, uniqueID))
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			_, err = io.Copy(f, r.Body)
+			return err
+		}()
+		if err != nil {
+			return fmt.Errorf("telegram: downloading file %s (%s): %w", uniqueID, mediaType, err)
+		}
+
 	}
 	return nil
 }

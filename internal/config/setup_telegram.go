@@ -2,7 +2,9 @@ package config
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/irth/tg2fedi/internal/telegram"
 )
@@ -26,6 +28,26 @@ func setupTelegram(ctx context.Context, c *telegram.Config) error {
 				return nil
 			},
 		)
+	}
+
+	for {
+		mediaDir := askStr("Where do you want to store media downloaded from Telegram (temporarily)?", c.MediaDir, "./media")
+		stat, err := os.Stat(mediaDir)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				c.MediaDir = mediaDir
+				break
+			}
+			fmt.Printf("Couldn't access the provided directory: %s: %s\n", mediaDir, err)
+			continue
+		}
+		if !stat.IsDir() {
+			fmt.Printf("Provided path exists and is not a directory: %s\n", mediaDir)
+			continue
+		}
+
+		c.MediaDir = mediaDir
+		break
 	}
 
 	fmt.Println("Configure channel IDs to repost from by modifying the file.")
