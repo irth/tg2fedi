@@ -35,9 +35,10 @@ func main() {
 			}
 
 			for post := range posts {
-				toots <- mastodon.Toot{
-					Status: post.Text,
-				}
+				log.Println("got post", post)
+				// toots <- mastodon.Toot{
+				// 	Status: post.Text,
+				// }
 			}
 			return nil
 		},

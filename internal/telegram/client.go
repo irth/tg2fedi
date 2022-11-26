@@ -11,7 +11,6 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"golang.org/x/exp/slices"
 )
 
 type Telegram struct {
@@ -20,24 +19,6 @@ type Telegram struct {
 	mediaGroupChannels map[string]chan orderedMessage
 	api                *tgbotapi.BotAPI
 	sync.Mutex
-}
-
-type Message struct {
-	Text  string
-	Media []string
-}
-
-type orderedMessage struct {
-	no uint64
-	*tgbotapi.Message
-}
-
-type messageGroup []orderedMessage
-
-func (m messageGroup) Sort() {
-	slices.SortFunc(m, func(a orderedMessage, b orderedMessage) bool {
-		return a.no < b.no
-	})
 }
 
 func (t *Telegram) StartReader() (<-chan Message, error) {
@@ -148,16 +129,18 @@ func (m MediaType) String() string {
 }
 
 func (t *Telegram) submitMessages(ch chan Message, msgs messageGroup) error {
-	log.Printf("received msgs: %d", len(msgs))
-	msgs.Sort()
-	slices.SortFunc(msgs, func(a orderedMessage, b orderedMessage) bool {
-		return a.no < b.no
-	})
+	if len(msgs) == 0 {
+		return nil
+	}
 
+	msgs.Sort()
+
+	attachedMedia := []Media{}
 	for _, msg := range msgs {
 		var mediaType MediaType
 		var fileID string
 		var uniqueID string
+		var caption = msg.Caption
 		switch {
 		case len(msg.Photo) > 0:
 			largest := msg.Photo[0]
@@ -177,13 +160,24 @@ func (t *Telegram) submitMessages(ch chan Message, msgs messageGroup) error {
 			fileID = msg.Sticker.FileID
 			uniqueID = msg.Sticker.FileUniqueID
 			mediaType = MediaTypePhoto
+		default:
+			continue
 		}
 
 		path, err := t.saveAttachment(fileID, uniqueID)
 		if err != nil {
 			return fmt.Errorf("telegram: downloading file %s (%s): %w", uniqueID, mediaType, err)
 		}
-		_ = path
+
+		attachedMedia = append(attachedMedia, Media{
+			Path:    path,
+			Caption: caption,
+		})
+
+	}
+	ch <- Message{
+		Text:  msgs.Text(),
+		Media: attachedMedia,
 	}
 	return nil
 }
